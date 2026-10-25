@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>News Feed — Distributed Systems</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#08050f; --surface:#10091a; --border:#2a1a40; --accent:#8b5cf6;
+          --accent2:#a78bfa; --text:#e2e8f0; --muted:#64748b; --success:#10b981; --error:#ef4444; --warn:#f59e0b; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+  header { background:linear-gradient(135deg,#1a0a30 0%,#2a1045 100%);
+    border-bottom:1px solid var(--border); padding:20px 32px; }
+  .badge { background:var(--accent); color:#fff; font-size:11px; font-weight:700;
+    padding:3px 10px; border-radius:20px; letter-spacing:1px; display:inline-block; margin-bottom:6px; }
+  header h1 { font-size:22px; font-weight:700; }
+  header p { font-size:13px; color:var(--muted); }
+
+  .container { max-width:1100px; margin:0 auto; padding:28px 24px; }
+  .grid { display:grid; grid-template-columns:280px 1fr; gap:20px; }
+
+  .panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .panel-header { padding:14px 16px; border-bottom:1px solid var(--border); font-size:13px; font-weight:600; color:var(--accent2); display:flex; align-items:center; gap:8px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent); animation:pulse 2s infinite; }
+  
+  label { display:block; font-size:12px; color:var(--muted); margin-bottom:5px; }
+  input, select { width:100%; padding:9px 12px; background:var(--bg); border:1px solid var(--border);
+    border-radius:8px; color:var(--text); font-size:12px; font-family:inherit; outline:none; }
+  input:focus, select:focus { border-color:var(--accent); }
+  .input-row { margin-bottom:10px; padding:0 14px; }
+  .pad { padding:14px; }
+
+  button { padding:9px 18px; border:none; border-radius:8px; font-family:inherit;
+    font-size:12px; font-weight:600; cursor:pointer; transition:all .2s; }
+  .btn-p { background:var(--accent); color:#fff; }
+  .btn-p:hover { background:var(--accent2); }
+  .btn-s { padding:6px 12px; font-size:11px; background:#2a1a40; color:var(--text); }
+  .btn-s:hover { background:var(--accent); color:#fff; }
+  .btn-row { display:flex; gap:8px; padding:0 14px 14px; flex-wrap:wrap; }
+
+  /* User cards */
+  .user-card { padding:10px 14px; border-bottom:1px solid var(--border); cursor:pointer; transition:.2s; }
+  .user-card:hover { background:#1a0a30; }
+  .user-card.selected { background:#1a0a30; border-left:3px solid var(--accent); }
+  .user-name { font-size:13px; font-weight:500; }
+  .user-meta { font-size:11px; color:var(--muted); margin-top:2px; }
+  .celeb-badge { background:#4c1d95; color:#c4b5fd; font-size:10px; padding:1px 6px; border-radius:4px; margin-left:6px; }
+
+  /* Feed */
+  .feed-header { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+  .strategy-btns { display:flex; gap:6px; }
+  .s-btn { padding:5px 12px; border:1px solid var(--border); border-radius:20px; font-size:11px;
+    font-weight:600; cursor:pointer; background:transparent; color:var(--muted); font-family:inherit; }
+  .s-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+  .post-card { padding:16px; border-bottom:1px solid var(--border); animation:fadeUp .3s ease; }
+  .post-author { font-size:12px; font-weight:600; color:var(--accent2); margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+  .post-text { font-size:13px; line-height:1.6; }
+  .post-meta { font-size:11px; color:var(--muted); margin-top:8px; display:flex; gap:12px; align-items:center; }
+  .post-score { font-family:'JetBrains Mono',monospace; color:var(--accent2); font-size:11px; }
+  .like-btn { padding:3px 10px; border:1px solid var(--border); border-radius:20px; background:transparent;
+    color:var(--muted); font-size:11px; cursor:pointer; font-family:inherit; }
+  .like-btn:hover { border-color:var(--accent); color:var(--accent2); }
+
+  .strategy-box { padding:14px; border-radius:8px; font-size:12px; line-height:1.8; }
+  .strategy-write { background:#1a0030; border:1px solid #4c1d95; }
+  .strategy-read  { background:#001a30; border:1px solid #1e3a5f; }
+  .strategy-hybrid{ background:#1a1000; border:1px solid #78350f; }
+
+  .concept-chip { display:inline-block; padding:2px 8px; border-radius:4px; font-size:10px;
+    font-weight:500; margin:2px; background:#2a1a40; color:var(--accent2); border:1px solid var(--border); }
+
+  .cursor-info { background:var(--bg); border:1px solid var(--border); border-radius:8px;
+    padding:10px 12px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted);
+    word-break:break-all; margin:12px 14px 0; }
+
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+<header>
+  <div class="badge">HLD</div>
+  <h1>📰 News Feed</h1>
+  <p>Fan-out-on-Write · Fan-out-on-Read · Hybrid · Follow Graph · Cursor Pagination · Ranking</p>
+</header>
+
+<div class="container">
+  <div class="grid">
+    <!-- Left: Users + Create Post -->
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <!-- Users -->
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>Users (click to view feed)</div>
+        <div id="user-list">Loading...</div>
+        <div class="pad" style="border-top:1px solid var(--border);">
+          <div class="input-row" style="padding:0;margin-bottom:8px;">
+            <label>New user_id</label>
+            <input id="new-uid" placeholder="e.g. frank">
+          </div>
+          <div class="input-row" style="padding:0;margin-bottom:8px;">
+            <label>Display Name</label>
+            <input id="new-name" placeholder="e.g. Frank Zhao">
+          </div>
+          <button class="btn-p" style="width:100%;" onclick="createUser()">+ Create User</button>
+        </div>
+      </div>
+
+      <!-- Follow -->
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>Follow Graph</div>
+        <div class="pad">
+          <div class="input-row" style="padding:0;margin-bottom:8px;">
+            <label>Follower</label>
+            <input id="fol-from" placeholder="alice">
+          </div>
+          <div class="input-row" style="padding:0;margin-bottom:8px;">
+            <label>→ Follows</label>
+            <input id="fol-to" placeholder="eve">
+          </div>
+          <div class="btn-row" style="padding:0;">
+            <button class="btn-p" onclick="follow()">Follow</button>
+            <button class="btn-s" onclick="unfollow()">Unfollow</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create Post -->
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>Create Post</div>
+        <div class="pad">
+          <div class="input-row" style="padding:0;margin-bottom:8px;">
+            <label>Author</label>
+            <input id="post-author" placeholder="alice">
+          </div>
+          <div class="input-row" style="padding:0;margin-bottom:8px;">
+            <label>Text</label>
+            <input id="post-text" placeholder="Write something...">
+          </div>
+          <button class="btn-p" style="width:100%;" onclick="createPost()">📝 Post</button>
+          <div id="post-resp" style="margin-top:10px;font-size:11px;color:var(--muted);"></div>
+        </div>
+      </div>
+
+      <!-- Concepts -->
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>Concepts</div>
+        <div class="pad">
+          <span class="concept-chip">Fan-out-on-Write</span>
+          <span class="concept-chip">Fan-out-on-Read</span>
+          <span class="concept-chip">Hybrid Strategy</span>
+          <span class="concept-chip">Follow Graph</span>
+          <span class="concept-chip">Cursor Pagination</span>
+          <span class="concept-chip">Ranking Pipeline</span>
+          <span class="concept-chip">Cache Invalidation</span>
+          <span class="concept-chip">Celebrity Problem</span>
+          <span class="concept-chip">Eventual Consistency</span>
+          <span class="concept-chip">Async Fan-out Queue</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Feed -->
+    <div class="panel" style="display:flex; flex-direction:column;">
+      <div class="feed-header">
+        <div>
+          <div style="font-weight:600;" id="viewing-label">Select a user to view feed</div>
+          <div style="font-size:11px; color:var(--muted);" id="feed-meta">–</div>
+        </div>
+        <div class="strategy-btns">
+          <button class="s-btn active" id="s-hybrid" onclick="setStrategy('hybrid')">Hybrid</button>
+          <button class="s-btn" id="s-write"  onclick="setStrategy('write')">Write</button>
+          <button class="s-btn" id="s-read"   onclick="setStrategy('read')">Read</button>
+        </div>
+      </div>
+
+      <!-- Strategy explanation -->
+      <div id="strategy-explain" class="strategy-box strategy-hybrid" style="margin:12px 14px 0;">
+        <strong style="color:var(--text);">🔀 Hybrid Strategy</strong><br>
+        Normal users: fan-out-on-write (pre-computed feed cached).<br>
+        Celebrities (≥5 followers): fan-out-on-read at query time.<br>
+        <em>Prevents write amplification for viral accounts.</em>
+      </div>
+
+      <div id="feed-list" style="flex:1; overflow-y:auto;">
+        <div style="padding:40px; text-align:center; color:var(--muted); font-size:13px;">Select a user from the left to load their feed</div>
+      </div>
+
+      <!-- Cursor pagination -->
+      <div id="cursor-box" class="cursor-info" style="display:none;"></div>
+      <div style="padding:12px 14px; border-top:1px solid var(--border); display:flex; gap:8px;">
+        <button class="btn-p" onclick="loadFeed(false)">⟳ Refresh Feed</button>
+        <button class="btn-s" id="next-btn" onclick="loadFeed(true)" style="display:none;">Next Page →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8004';
+let selectedUser = null, strategy = 'hybrid', nextCursor = null;
+
+async function api(method, path, body) {
+  const o = { method, headers:{'Content-Type':'application/json'} };
+  if (body) o.body = JSON.stringify(body);
+  const r = await fetch(API+path, o);
+  return r.json();
+}
+
+function gid(id) { return document.getElementById(id); }
+
+const strategyText = {
+  hybrid: ['strategy-hybrid', '<strong style="color:var(--text);">🔀 Hybrid Strategy</strong><br>Normal users: fan-out-on-write (pre-computed feed).<br>Celebrities (≥5 followers): merge on read.<br><em>Prevents write amplification for viral accounts.</em>'],
+  write:  ['strategy-write',  '<strong style="color:var(--text);">✍️ Fan-out-on-Write</strong><br>On every post: push post_id to all follower feeds immediately.<br><em>Fast reads, slow writes. Write amplification for celebrities.</em>'],
+  read:   ['strategy-read',   '<strong style="color:var(--text);">📖 Fan-out-on-Read</strong><br>On feed load: pull all followees\' timelines and merge.<br><em>Fast writes, slow reads. Good for low-follower accounts.</em>'],
+};
+
+function setStrategy(s) {
+  strategy = s;
+  nextCursor = null;
+  ['hybrid','write','read'].forEach(x => {
+    gid('s-'+x).classList.toggle('active', x === s);
+  });
+  const [cls, html] = strategyText[s];
+  const el = gid('strategy-explain');
+  el.className = 'strategy-box ' + cls;
+  el.innerHTML = html;
+  if (selectedUser) loadFeed(false);
+}
+
+async function loadUsers() {
+  const users = await api('GET', '/api/users');
+  const list = gid('user-list');
+  list.innerHTML = '';
+  users.forEach(u => {
+    const d = document.createElement('div');
+    d.className = 'user-card' + (u.user_id === selectedUser ? ' selected' : '');
+    d.onclick = () => { selectedUser = u.user_id; nextCursor = null; loadUsers(); loadFeed(false); };
+    d.innerHTML = `
+      <div class="user-name">${u.name}${u.is_celebrity ? '<span class="celeb-badge">⭐ Celebrity</span>':''}</div>
+      <div class="user-meta">@${u.user_id} · ${u.followers} followers · ${u.following} following</div>
+    `;
+    list.appendChild(d);
+  });
+}
+
+async function createUser() {
+  const uid = gid('new-uid').value.trim();
+  const name = gid('new-name').value.trim();
+  if (!uid || !name) return;
+  await api('POST', '/api/users', { user_id: uid, name });
+  gid('new-uid').value = ''; gid('new-name').value = '';
+  loadUsers();
+}
+
+async function follow() {
+  const from = gid('fol-from').value.trim();
+  const to   = gid('fol-to').value.trim();
+  if (!from || !to) return;
+  const r = await api('POST', '/api/follow', { follower_id: from, target_id: to });
+  loadUsers();
+  if (r.target_is_celebrity)
+    gid('post-resp').textContent = `⭐ ${to} is now a celebrity (≥5 followers) — hybrid strategy kicks in`;
+}
+
+async function unfollow() {
+  const from = gid('fol-from').value.trim();
+  const to   = gid('fol-to').value.trim();
+  if (!from || !to) return;
+  await api('POST', '/api/unfollow', { follower_id: from, target_id: to });
+  loadUsers();
+}
+
+async function createPost() {
+  const author = gid('post-author').value.trim();
+  const text   = gid('post-text').value.trim();
+  if (!author || !text) return;
+  const r = await api('POST', '/api/posts', { user_id: author, text });
+  gid('post-text').value = '';
+  gid('post-resp').innerHTML = `✓ Posted via <strong style="color:var(--accent2)">${r.fanout_strategy}</strong> · notifying ${r.followers_to_notify} followers`;
+  if (selectedUser) { nextCursor = null; loadFeed(false); }
+}
+
+async function loadFeed(nextPage) {
+  if (!selectedUser) return;
+  let url = `/api/feed/${selectedUser}?strategy=${strategy}&limit=8`;
+  if (nextPage && nextCursor) url += `&cursor=${encodeURIComponent(nextCursor)}`;
+  else nextCursor = null;
+
+  const r = await api('GET', url);
+  gid('viewing-label').textContent = `@${selectedUser}'s Feed`;
+  gid('feed-meta').textContent = `${r.strategy} strategy · ${r.total_ranked} posts ranked · fan-out processed: ${r.fanout_processed}`;
+
+  const list = gid('feed-list');
+  if (!nextPage) list.innerHTML = '';
+
+  if (!r.posts || r.posts.length === 0) {
+    list.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:13px;">No posts in feed yet. Follow some users or create posts.</div>';
+  }
+
+  r.posts.forEach(p => {
+    const d = document.createElement('div');
+    d.className = 'post-card';
+    const age = Math.floor((Date.now()/1000 - p.ts) / 60);
+    d.innerHTML = `
+      <div class="post-author">@${p.user_id}
+        <span style="font-size:10px;color:var(--muted);font-weight:400">${age}m ago</span>
+        <span style="font-size:10px;padding:1px 6px;border-radius:4px;background:#2a1a40;color:var(--accent2)">${p.fanout_strategy||'write'}</span>
+      </div>
+      <div class="post-text">${p.text}</div>
+      <div class="post-meta">
+        <span>❤️ ${p.likes}</span>
+        <span>💬 ${p.comments}</span>
+        <button class="like-btn" onclick="likePost('${p.post_id}')">Like</button>
+        <span class="post-score">score:—</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--border)">seq:${p.post_id}</span>
+      </div>
+    `;
+    list.appendChild(d);
+  });
+
+  nextCursor = r.next_cursor;
+  gid('next-btn').style.display = nextCursor ? 'block' : 'none';
+  if (nextCursor) {
+    gid('cursor-box').style.display = 'block';
+    gid('cursor-box').textContent = 'next_cursor: ' + nextCursor;
+  } else {
+    gid('cursor-box').style.display = 'none';
+  }
+}
+
+async function likePost(postId) {
+  await api('POST', `/api/posts/${postId}/like`, { post_id: postId, user_id: selectedUser||'anon' });
+  if (selectedUser) loadFeed(false);
+}
+
+loadUsers();
+</script>
+</body>
+</html>
